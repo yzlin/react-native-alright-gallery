@@ -1,12 +1,21 @@
-import { Text, View, StyleSheet } from 'react-native';
-import { multiply } from 'react-native-alright-gallery';
+import { StyleSheet, View } from "react-native";
+import Gallery from "react-native-alright-gallery";
 
-const result = multiply(3, 7);
+const images = [
+  "https://picsum.photos/seed/alright-1/1000/1000",
+  "https://picsum.photos/seed/alright-2/1000/1000",
+  "https://picsum.photos/seed/alright-3/1000/1000",
+];
 
 export default function App() {
   return (
     <View style={styles.container}>
-      <Text>Result: {result}</Text>
+      <Gallery
+        data={images}
+        onIndexChange={(newIndex) => {
+          console.log("Index changed:", newIndex);
+        }}
+      />
     </View>
   );
 }
@@ -14,7 +23,6 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "black",
   },
 });
