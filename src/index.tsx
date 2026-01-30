@@ -50,6 +50,7 @@ const DOUBLE_TAP_SCALE = 3;
 const MAX_SCALE = 6;
 const SPACE_BETWEEN_IMAGES = 40;
 const PAGE_INDICATOR_TOP = 12;
+const MAX_VERTICAL_OFFSET = 220;
 
 const getDefaultTopInset = () => {
   if (Platform.OS === "android") {
@@ -714,8 +715,8 @@ const ResizableImage = React.memo(
           if (isVertical.value && newHeight <= height) {
             const destY = translationY + velocityY * 0.2;
             shouldClose.value = disableSwipeUp
-              ? destY > 220
-              : Math.abs(destY) > 220;
+              ? destY > MAX_VERTICAL_OFFSET
+              : Math.abs(destY) > MAX_VERTICAL_OFFSET;
           }
         }
       )
@@ -1093,8 +1094,29 @@ const GalleryComponent = <T,>(
 
   const currentIndex = useSharedValue(initialIndex);
 
+  const backdropOpacity = useSharedValue(1);
+
+  const { onTranslationYChange: userOnTranslationYChange, ...otherCallbacks } =
+    eventsCallbacks;
+
+  const handleTranslationYChange = (
+    translationY: number,
+    shouldClose: boolean
+  ) => {
+    "worklet";
+    const clampedY = clamp(translationY, 0, MAX_VERTICAL_OFFSET);
+    backdropOpacity.value = 1 - 0.2 * (clampedY / MAX_VERTICAL_OFFSET);
+    if (userOnTranslationYChange) {
+      userOnTranslationYChange(translationY, shouldClose);
+    }
+  };
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: rtl ? -translateX.value : translateX.value }],
+  }));
+
+  const backdropAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: backdropOpacity.value,
   }));
 
   const changeIndex = useCallback(
@@ -1156,6 +1178,10 @@ const GalleryComponent = <T,>(
 
   return (
     <GestureHandlerRootView style={[styles.container, style]}>
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.backdrop, backdropAnimatedStyle]}
+      />
       <Animated.View style={[styles.rowContainer, animatedStyle]}>
         {data.map((item: any, i) => {
           const isFirst = i === 0;
@@ -1203,8 +1229,9 @@ const GalleryComponent = <T,>(
                 loop: isLoop,
                 onScaleChange,
                 onScaleChangeRange,
+                onTranslationYChange: handleTranslationYChange,
                 setRef,
-                ...eventsCallbacks,
+                ...otherCallbacks,
                 ...dimensions,
               }}
             />
@@ -1234,7 +1261,15 @@ const Gallery = React.forwardRef(GalleryComponent) as <T>(
 ) => React.ReactElement;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "black" },
+  container: { flex: 1 },
+  backdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "black",
+  },
   rowContainer: { flex: 1 },
   itemContainer: { position: "absolute" },
   pageIndicatorContainer: {
