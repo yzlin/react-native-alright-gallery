@@ -91,6 +91,7 @@
     "react-native-gesture-handler": "~2.28.0",
     "react-native-reanimated": "~4.1.1",
     "react-native-redash": "^16.0.8",
+    "react-native-safe-area-context": "^5",
     "react-native-worklets": "0.5.1",
     "release-it": "^19.0.4",
     "typescript": "^5.9.2",
@@ -102,7 +103,8 @@
     "react-native-reanimated": "~4.1.1",
     "react-native-worklets": "0.5.1",
     "react-native-gesture-handler": "~2.28.0",
-    "react-native-redash": "^16.0.8"
+    "react-native-redash": "^16.0.8",
+    "react-native-safe-area-context": "^5"
   },
   "workspaces": [
     "example"

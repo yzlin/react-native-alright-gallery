@@ -5,12 +5,17 @@ import React, {
   useRef,
   useState,
 } from "react";
-import type { ViewStyle } from "react-native";
+import type { TextStyle, ViewStyle } from "react-native";
 import {
   I18nManager,
   Image,
+  NativeModules,
+  Platform,
+  StatusBar,
   StyleSheet,
+  Text,
   useWindowDimensions,
+  View,
 } from "react-native";
 import {
   Gesture,
@@ -29,6 +34,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useVector } from "react-native-redash";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
 
 import {
@@ -43,6 +49,15 @@ const rtl = I18nManager.isRTL;
 const DOUBLE_TAP_SCALE = 3;
 const MAX_SCALE = 6;
 const SPACE_BETWEEN_IMAGES = 40;
+const PAGE_INDICATOR_TOP = 12;
+
+const getDefaultTopInset = () => {
+  if (Platform.OS === "android") {
+    return StatusBar.currentHeight ?? 0;
+  }
+  const height = NativeModules?.StatusBarManager?.HEIGHT;
+  return typeof height === "number" ? height : 0;
+};
 
 interface Dimensions {
   height: number;
@@ -1018,6 +1033,10 @@ type GalleryProps<T> = EventsCallbacks & {
   loop?: boolean;
   onScaleChange?: (scale: number) => void;
   onScaleChangeRange?: { start: number; end: number };
+  showPageIndicator?: boolean;
+  pageIndicatorTopInset?: number;
+  pageIndicatorContainerStyle?: ViewStyle;
+  pageIndicatorTextStyle?: TextStyle;
 };
 
 const GalleryComponent = <T,>(
@@ -1044,6 +1063,10 @@ const GalleryComponent = <T,>(
     loop = false,
     onScaleChange,
     onScaleChangeRange,
+    showPageIndicator = true,
+    pageIndicatorTopInset,
+    pageIndicatorContainerStyle,
+    pageIndicatorTextStyle,
     ...eventsCallbacks
   }: GalleryProps<T>,
   ref: GalleryReactRef
@@ -1054,6 +1077,9 @@ const GalleryComponent = <T,>(
   const isLoop = loop && data?.length > 1;
 
   const [index, setIndex] = useState(initialIndex);
+  const totalPages = data.length;
+  const currentPage = totalPages > 0 ? index + 1 : 0;
+  const safeAreaInsets = useSafeAreaInsets();
 
   const refs = useRef<ItemRef[]>([]);
 
@@ -1121,6 +1147,13 @@ const GalleryComponent = <T,>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.length, dimensions.width]);
 
+  const defaultTopInset = safeAreaInsets.top ?? getDefaultTopInset();
+  const indicatorTopInset =
+    typeof pageIndicatorTopInset === "number"
+      ? pageIndicatorTopInset
+      : defaultTopInset;
+  const indicatorTop = PAGE_INDICATOR_TOP + indicatorTopInset;
+
   return (
     <GestureHandlerRootView style={[styles.container, style]}>
       <Animated.View style={[styles.rowContainer, animatedStyle]}>
@@ -1178,6 +1211,20 @@ const GalleryComponent = <T,>(
           );
         })}
       </Animated.View>
+      {showPageIndicator && totalPages > 0 ? (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.pageIndicatorContainer,
+            { top: indicatorTop },
+            pageIndicatorContainerStyle,
+          ]}
+        >
+          <Text style={[styles.pageIndicatorText, pageIndicatorTextStyle]}>
+            {currentPage} / {totalPages}
+          </Text>
+        </View>
+      ) : null}
     </GestureHandlerRootView>
   );
 };
@@ -1190,6 +1237,23 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "black" },
   rowContainer: { flex: 1 },
   itemContainer: { position: "absolute" },
+  pageIndicatorContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 2,
+  },
+  pageIndicatorText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
 });
 
 export default Gallery;
