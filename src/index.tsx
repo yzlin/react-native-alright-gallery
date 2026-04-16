@@ -51,6 +51,7 @@ const MAX_SCALE = 6;
 const SPACE_BETWEEN_IMAGES = 40;
 const PAGE_INDICATOR_TOP = 12;
 const MAX_VERTICAL_OFFSET = 220;
+const ZOOMED_SCALE_EPSILON = 0.01;
 
 const getDefaultTopInset = () => {
   if (Platform.OS === "android") {
@@ -150,6 +151,7 @@ type Props<T> = EventsCallbacks & {
   loop: boolean;
   onScaleChange?: (scale: number) => void;
   onScaleChangeRange?: { start: number; end: number };
+  onZoomStateChange?: (isZoomed: boolean) => void;
 
   setRef: (index: number, value: ItemRef) => void;
 };
@@ -197,6 +199,7 @@ const ResizableImage = React.memo(
     length,
     onScaleChange,
     onScaleChangeRange,
+    onZoomStateChange,
     onTranslationYChange,
     setRef,
   }: Props<T>) => {
@@ -221,6 +224,16 @@ const ResizableImage = React.memo(
     const isActive = useDerivedValue(
       () => currentIndex.value === index,
       [currentIndex, index]
+    );
+
+    useAnimatedReaction(
+      () => scale.value > 1 + ZOOMED_SCALE_EPSILON,
+      (isZoomed: boolean, wasZoomed: boolean | null | undefined) => {
+        if (!onZoomStateChange || isZoomed === wasZoomed) {
+          return;
+        }
+        scheduleOnRN(onZoomStateChange, isZoomed);
+      }
     );
 
     useAnimatedReaction(
@@ -1078,6 +1091,8 @@ const GalleryComponent = <T,>(
   const isLoop = loop && data?.length > 1;
 
   const [index, setIndex] = useState(initialIndex);
+  const [isPhotoOnly, setIsPhotoOnly] = useState(false);
+  const [isZoomed, setIsZoomed] = useState(false);
   const totalPages = data.length;
   const currentPage = totalPages > 0 ? index + 1 : 0;
   const safeAreaInsets = useSafeAreaInsets();
@@ -1096,8 +1111,11 @@ const GalleryComponent = <T,>(
 
   const backdropOpacity = useSharedValue(1);
 
-  const { onTranslationYChange: userOnTranslationYChange, ...otherCallbacks } =
-    eventsCallbacks;
+  const {
+    onTap: userOnTap,
+    onTranslationYChange: userOnTranslationYChange,
+    ...otherCallbacks
+  } = eventsCallbacks;
 
   const handleTranslationYChange = (
     translationY: number,
@@ -1126,6 +1144,11 @@ const GalleryComponent = <T,>(
     },
     [onIndexChange, setIndex]
   );
+
+  const handleTap = useCallback(() => {
+    setIsPhotoOnly((current) => !current);
+    userOnTap?.();
+  }, [userOnTap]);
 
   useAnimatedReaction(
     () => currentIndex.value,
@@ -1175,6 +1198,8 @@ const GalleryComponent = <T,>(
       ? pageIndicatorTopInset
       : defaultTopInset;
   const indicatorTop = PAGE_INDICATOR_TOP + indicatorTopInset;
+  const shouldShowPageIndicator =
+    showPageIndicator && totalPages > 0 && !isPhotoOnly && !isZoomed;
 
   return (
     <GestureHandlerRootView style={[styles.container, style]}>
@@ -1229,6 +1254,8 @@ const GalleryComponent = <T,>(
                 loop: isLoop,
                 onScaleChange,
                 onScaleChangeRange,
+                onZoomStateChange: setIsZoomed,
+                onTap: handleTap,
                 onTranslationYChange: handleTranslationYChange,
                 setRef,
                 ...otherCallbacks,
@@ -1238,7 +1265,7 @@ const GalleryComponent = <T,>(
           );
         })}
       </Animated.View>
-      {showPageIndicator && totalPages > 0 ? (
+      {shouldShowPageIndicator ? (
         <View
           pointerEvents="none"
           style={[

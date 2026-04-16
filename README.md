@@ -62,6 +62,12 @@ return (
 );
 ```
 
+Single-tap toggles between:
+- detailed mode: photo + page indicator
+- photo-only mode: photo only
+
+The gallery defaults to detailed mode when mounted.
+
 ## Contributing
 
 - [Development workflow](CONTRIBUTING.md#development-workflow)
