@@ -58,13 +58,18 @@ return (
     onIndexChange={(newIndex) => {
       console.log(newIndex);
     }}
+    onSwipeToClose={() => {
+      // dismiss gallery
+    }}
   />
 );
 ```
 
 Single-tap toggles between:
-- detailed mode: photo + page indicator
+- detailed mode: photo + page indicator + close button
 - photo-only mode: photo only
+
+The close button is shown when `onSwipeToClose` is provided, and it follows the same visible/hidden behavior as the page indicator.
 
 The gallery defaults to detailed mode when mounted.
 

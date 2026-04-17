@@ -11,6 +11,7 @@ import {
   Image,
   NativeModules,
   Platform,
+  Pressable,
   StatusBar,
   StyleSheet,
   Text,
@@ -50,6 +51,7 @@ const DOUBLE_TAP_SCALE = 3;
 const MAX_SCALE = 6;
 const SPACE_BETWEEN_IMAGES = 40;
 const PAGE_INDICATOR_TOP = 12;
+const CLOSE_BUTTON_RIGHT = 16;
 const MAX_VERTICAL_OFFSET = 220;
 const ZOOMED_SCALE_EPSILON = 0.01;
 
@@ -1112,6 +1114,7 @@ const GalleryComponent = <T,>(
   const backdropOpacity = useSharedValue(1);
 
   const {
+    onSwipeToClose: userOnSwipeToClose,
     onTap: userOnTap,
     onTranslationYChange: userOnTranslationYChange,
     ...otherCallbacks
@@ -1198,8 +1201,11 @@ const GalleryComponent = <T,>(
       ? pageIndicatorTopInset
       : defaultTopInset;
   const indicatorTop = PAGE_INDICATOR_TOP + indicatorTopInset;
+  const overlayTopStyle = { top: indicatorTop };
   const shouldShowPageIndicator =
     showPageIndicator && totalPages > 0 && !isPhotoOnly && !isZoomed;
+  const shouldShowCloseButton =
+    shouldShowPageIndicator && userOnSwipeToClose != null;
 
   return (
     <GestureHandlerRootView style={[styles.container, style]}>
@@ -1255,6 +1261,7 @@ const GalleryComponent = <T,>(
                 onScaleChange,
                 onScaleChangeRange,
                 onZoomStateChange: setIsZoomed,
+                onSwipeToClose: userOnSwipeToClose,
                 onTap: handleTap,
                 onTranslationYChange: handleTranslationYChange,
                 setRef,
@@ -1265,12 +1272,23 @@ const GalleryComponent = <T,>(
           );
         })}
       </Animated.View>
+      {shouldShowCloseButton ? (
+        <Pressable
+          accessibilityLabel="Close gallery"
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={userOnSwipeToClose}
+          style={[styles.closeButton, overlayTopStyle]}
+        >
+          <Text style={styles.closeButtonText}>×</Text>
+        </Pressable>
+      ) : null}
       {shouldShowPageIndicator ? (
         <View
           pointerEvents="none"
           style={[
             styles.pageIndicatorContainer,
-            { top: indicatorTop },
+            overlayTopStyle,
             pageIndicatorContainerStyle,
           ]}
         >
@@ -1299,6 +1317,23 @@ const styles = StyleSheet.create({
   },
   rowContainer: { flex: 1 },
   itemContainer: { position: "absolute" },
+  closeButton: {
+    position: "absolute",
+    right: CLOSE_BUTTON_RIGHT,
+    zIndex: 2,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+  },
+  closeButtonText: {
+    color: "white",
+    fontSize: 24,
+    lineHeight: 24,
+    fontWeight: "600",
+  },
   pageIndicatorContainer: {
     position: "absolute",
     left: 0,
