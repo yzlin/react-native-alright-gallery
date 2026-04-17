@@ -82,8 +82,11 @@ lib/
 ios/generated
 android/generated
 
+example/ios/
+example/android/
+
 # React Native Nitro Modules
 nitrogen/
 
-# OMO
-.sisyphus/
+# Agent
+.pi/

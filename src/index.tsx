@@ -40,6 +40,7 @@ import { scheduleOnRN } from "react-native-worklets";
 
 import {
   clamp,
+  composeItemGesture,
   resizeImage,
   withDecaySpring,
   withRubberBandClamp,
@@ -53,6 +54,7 @@ const SPACE_BETWEEN_IMAGES = 40;
 const PAGE_INDICATOR_TOP = 12;
 const CLOSE_BUTTON_RIGHT = 16;
 const MAX_VERTICAL_OFFSET = 220;
+const TAP_MAX_DURATION = 250;
 const ZOOMED_SCALE_EPSILON = 0.01;
 
 const getDefaultTopInset = () => {
@@ -886,6 +888,7 @@ const ResizableImage = React.memo(
     const doubleTapGesture = Gesture.Tap()
       .enabled(doubleTapEnabled)
       .numberOfTaps(2)
+      .maxDuration(TAP_MAX_DURATION)
       .maxDelay(doubleTapInterval)
       .onEnd(
         ({
@@ -993,13 +996,13 @@ const ResizableImage = React.memo(
 
     return (
       <GestureDetector
-        gesture={Gesture.Race(
-          Gesture.Simultaneous(
-            longPressGesture,
-            Gesture.Race(panGesture, pinchGesture)
-          ),
-          Gesture.Exclusive(doubleTapGesture, tapGesture)
-        )}
+        gesture={composeItemGesture({
+          doubleTapGesture,
+          longPressGesture,
+          panGesture,
+          pinchGesture,
+          singleTapGesture: tapGesture,
+        })}
       >
         <Animated.View
           style={[
